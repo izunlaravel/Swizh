@@ -1,8 +1,9 @@
 <?php
 
-use Illuminate\Foundation\Inspiring;
-use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 
-Artisan::command('inspire', function () {
-    $this->comment(Inspiring::quote());
-})->purpose('Display an inspiring quote');
+// Jalankan tutup buku otomatis setiap tanggal 1 pukul 00:05 WIB
+Schedule::command('swizh:monthly-closing')
+    ->monthlyOn(1, '00:05')
+    ->timezone('Asia/Jakarta')
+    ->withoutOverlapping();

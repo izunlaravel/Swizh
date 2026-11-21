@@ -79,4 +79,15 @@ class AdminSellerController extends Controller
 
         return back()->with('success', "Transaksi Rp " . number_format($result['amount_rp'], 0, ',', '.') . " sukses! Terbentuk {$result['sp_earned']} SP ({$result['sp_percentage']}%). Bonus Langsung 40% = Rp " . number_format($result['direct_bonus'], 0, ',', '.'));
     }
+
+    public function runClosing()
+    {
+        abort_unless(Auth::user()->is_admin, 403);
+        $period = now()->format("Y-m");
+        $exitCode = \Illuminate\Support\Facades\Artisan::call("swizh:monthly-closing", ["period" => $period]);
+        if ($exitCode !== 0) {
+            return back()->with("error", "Periode {$period} sudah pernah ditutup bukunya.");
+        }
+        return back()->with("success", "Tutup buku periode {$period} berhasil dijalankan! Bonus Leader & Reward telah didistribusikan.");
+    }
 }

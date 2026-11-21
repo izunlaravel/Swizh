@@ -23,6 +23,8 @@
                 </div>
             </div>
 
+            <div class="bg-white shadow-sm sm:rounded-lg p-6 border-l-4 border-purple-600 flex flex-col md:flex-row justify-between items-center gap-4"><div><h3 class="font-semibold text-gray-900">Tutup Buku Bulanan Otomatis (Tgl 1 Pukul 00:05 WIB)</h3><p class="text-xs text-gray-500">Menghanguskan bonus pending, membagi Pool Leader 5%, dan menghitung pemenang Reward 10%.</p></div><form method="POST" action="{{ route('admin.closing.run') }}" onsubmit="return confirm('Yakin jalankan tutup buku untuk periode bulan berjalan?')">@csrf<button type="submit" style="background-color:#7c3aed;color:#fff;" class="px-4 py-2 text-xs font-bold rounded-md">🔒 Jalankan Tutup Buku Sekarang</button></form></div>
+
             <div class="bg-white shadow-sm sm:rounded-lg p-6">
                 <h3 class="text-lg font-medium text-gray-900 mb-4">Daftar Seller & Persetujuan Admin</h3>
                 <div class="space-y-4">
