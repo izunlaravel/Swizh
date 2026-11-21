@@ -9,7 +9,6 @@ use Illuminate\Support\Facades\DB;
 
 class MemberSellerController extends Controller
 {
-    // Member biasa mengajukan pendaftaran Seller baru
     public function apply(Request $request)
     {
         $user = Auth::user();
@@ -37,7 +36,7 @@ class MemberSellerController extends Controller
             'referred_by' => $referrerId,
             'store_name' => $request->store_name,
             'sp_percentage' => $request->sp_percentage,
-            'status' => 'pending', // Wajib disetujui Admin dulu
+            'status' => 'pending',
             'is_active' => false,
             'created_at' => now(),
             'updated_at' => now(),
@@ -46,7 +45,6 @@ class MemberSellerController extends Controller
         return back()->with('success', 'Pengajuan Seller terkirim! Menunggu persetujuan Admin Swizh.');
     }
 
-    // Seller mengajukan perubahan persentase SP ke Admin
     public function requestSpChange(Request $request)
     {
         $user = Auth::user();
@@ -67,6 +65,20 @@ class MemberSellerController extends Controller
 
         return back()->with('success', 'Permintaan perubahan persentase SP ke ' . $request->requested_sp_percentage . '% telah dikirim ke Admin.');
     }
-}
 
-// Tambahkan di dalam class MemberSellerController sebelum kurung kurawal penutup
+    public function updateLocation(Request $request)
+    {
+        $request->validate([
+            'latitude' => 'required|numeric',
+            'longitude' => 'required|numeric',
+        ]);
+
+        DB::table('sellers')->where('user_id', Auth::id())->update([
+            'latitude' => $request->latitude,
+            'longitude' => $request->longitude,
+            'updated_at' => now(),
+        ]);
+
+        return back()->with('success', 'Lokasi GPS toko berhasil diperbarui!');
+    }
+}
