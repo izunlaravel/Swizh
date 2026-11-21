@@ -98,7 +98,7 @@
                         </div>
                         <div class="text-center bg-white p-3 rounded-lg border shadow-sm">
                             <div class="inline-block">
-                                <div id="sellerQr"></div><script src="https://jsdelivr.net"></script><script>var qr=qrcode(0,"M");qr.addData("SWZ-STORE-{{ $mySeller->id }}");qr.make();document.getElementById("sellerQr").innerHTML=qr.createImgTag(4);</script>
+                                <img src="{{ (new \chillerlan\QRCode\QRCode)->render('SWZ-STORE-' . $mySeller->id) }}" alt="QR Toko" style="width:140px;height:140px;margin:auto;"><script>var qr=qrcode(0,"M");qr.addData("SWZ-STORE-{{ $mySeller->id }}");qr.make();document.getElementById("sellerQr").innerHTML=qr.createImgTag(4);</script>
                             </div>
                             <p class="text-[11px] font-bold text-gray-700 mt-1">SCAN QRIS SWIZH</p>
                         </div>
