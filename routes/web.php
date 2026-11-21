@@ -23,6 +23,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/seller/apply', [MemberSellerController::class, 'apply'])->name('member.seller.apply');
     Route::post('/seller/request-sp', [MemberSellerController::class, 'requestSpChange'])->name('member.seller.request_sp');
     Route::post('/seller/location', [MemberSellerController::class, 'updateLocation'])->name('member.seller.location');
+    Route::post('/profile/photo', [MemberSellerController::class, 'updateProfilePhoto'])->name('member.profile.photo');
 
     Route::get('/qris/scan', [QrisPaymentController::class, 'scanPage'])->name('qris.scan');
     Route::post('/qris/pay', [QrisPaymentController::class, 'processPayment'])->name('qris.pay');

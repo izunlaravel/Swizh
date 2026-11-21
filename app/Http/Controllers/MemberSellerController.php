@@ -81,4 +81,30 @@ class MemberSellerController extends Controller
 
         return back()->with('success', 'Lokasi GPS toko berhasil diperbarui!');
     }
+
+    public function updateProfilePhoto(Request $request)
+    {
+        $request->validate([
+            "photo" => "required|image|mimes:jpg,jpeg,png,webp|max:2048",
+        ], [
+            "photo.max" => "Ukuran foto profil maksimal 2 MB.",
+            "photo.image" => "File harus berupa gambar (JPG, PNG, atau WEBP).",
+        ]);
+
+        $user = Auth::user();
+        $file = $request->file("photo");
+        $filename = "user-" . $user->id . "-" . time() . "." . $file->getClientOriginalExtension();
+        $file->move(public_path("images/avatars"), $filename);
+
+        if ($user->profile_photo && file_exists(public_path($user->profile_photo))) {
+            @unlink(public_path($user->profile_photo));
+        }
+
+        DB::table("users")->where("id", $user->id)->update([
+            "profile_photo" => "images/avatars/" . $filename,
+            "updated_at" => now(),
+        ]);
+
+        return back()->with("success", "Foto profil berhasil diperbarui!");
+    }
 }
