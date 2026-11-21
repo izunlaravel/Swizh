@@ -21,6 +21,7 @@
         <div class="flex justify-between items-center gap-2">
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">Dashboard Swizh</h2>
             <div class="flex items-center gap-2">
+                <a href="{{ route('sellers.nearby') }}" style="background-color:#0d9488; color:#ffffff;" class="px-3 py-1.5 text-xs font-bold rounded-md shadow">📍 Tenant Terdekat</a>
                 <a href="{{ route('qris.scan') }}" style="background-color:#2563eb; color:#ffffff;" class="px-3 py-1.5 text-xs font-bold rounded-md shadow">
                     📷 Scan QRIS
                 </a>
