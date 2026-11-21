@@ -18,3 +18,11 @@ Route::middleware('auth')->group(function () {
 });
 
 require __DIR__.'/auth.php';
+
+Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/sellers', [\App\Http\Controllers\AdminSellerController::class, 'index'])->name('sellers.index');
+    Route::post('/sellers', [\App\Http\Controllers\AdminSellerController::class, 'store'])->name('sellers.store');
+    Route::patch('/sellers/{id}', [\App\Http\Controllers\AdminSellerController::class, 'updatePercentage'])->name('sellers.update');
+    Route::post('/simulate-transaction', [\App\Http\Controllers\AdminSellerController::class, 'simulateTransaction'])->name('sellers.simulate');
+});
+Route::middleware(["auth"])->prefix("admin")->name("admin.")->group(function () { Route::get("/sellers", [\App\Http\Controllers\AdminSellerController::class, "index"])->name("sellers.index"); Route::post("/sellers", [\App\Http\Controllers\AdminSellerController::class, "store"])->name("sellers.store"); Route::patch("/sellers/{id}", [\App\Http\Controllers\AdminSellerController::class, "updatePercentage"])->name("sellers.update"); Route::post("/simulate-transaction", [\App\Http\Controllers\AdminSellerController::class, "simulateTransaction"])->name("sellers.simulate"); });
