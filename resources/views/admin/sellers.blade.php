@@ -20,37 +20,86 @@
                 <div class="bg-white p-5 rounded-lg shadow-sm border-l-4 border-green-600">
                     <p class="text-xs text-gray-500 uppercase">Pool Bonus Leader 5% ({{ $period }})</p>
                     <p class="text-2xl font-bold text-green-700 mt-1">Rp {{ number_format($leaderPoolRp, 0, ',', '.') }}</p>
+                </div>
+            </div>
 
-cd /workspaces/Swizh && cat << 'EOF' > routes/web.php
-<?php
+            <div class="bg-white shadow-sm sm:rounded-lg p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Daftar Seller & Persetujuan Admin</h3>
+                <div class="space-y-4">
+                    @forelse($sellers as $seller)
+                        <div class="border border-gray-200 rounded-lg p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <p class="font-bold text-gray-900">{{ $seller->store_name }}</p>
+                                    @if($seller->status === 'pending')
+                                        <span class="px-2 py-0.5 text-[10px] font-bold bg-yellow-100 text-yellow-800 rounded">MENUNGGU APPROVAL</span>
+                                    @else
+                                        <span class="px-2 py-0.5 text-[10px] font-bold bg-green-100 text-green-800 rounded">AKTIF</span>
+                                    @endif
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1">Pemilik: {{ $seller->owner_name }} | Pengajak: {{ $seller->referrer_name ?? '-' }} | SP Saat Ini: <strong>{{ $seller->sp_percentage }}%</strong></p>
+                                @if($seller->requested_sp_percentage)
+                                    <p class="text-xs font-semibold text-indigo-600 mt-1">🔔 Mengajukan perubahan persentase SP menjadi: {{ $seller->requested_sp_percentage }}%</p>
+                                @endif
+                            </div>
 
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\AdminSellerController;
-use App\Http\Controllers\MemberSellerController;
-use Illuminate\Support\Facades\Route;
+                            <div class="flex flex-wrap items-center gap-2">
+                                @if($seller->status === 'pending')
+                                    <form method="POST" action="{{ route('admin.sellers.approve', $seller->id) }}">
+                                        @csrf
+                                        <button type="submit" style="background-color:#16a34a; color:#ffffff;" class="px-3 py-2 text-xs font-bold rounded-md">
+                                            ✓ Setujui Jadi Seller
+                                        </button>
+                                    </form>
+                                @endif
 
-Route::get('/', function () {
-    return view('welcome');
-});
+                                <form method="POST" action="{{ route('admin.sellers.approve_sp', $seller->id) }}" class="flex items-center gap-2">
+                                    @csrf
+                                    @method('PATCH')
+                                    <input type="number" step="0.01" name="sp_percentage" value="{{ $seller->requested_sp_percentage ?? $seller->sp_percentage }}" class="w-24 text-sm border-gray-300 rounded-md">
+                                    <button type="submit" style="background-color:#d97706; color:#ffffff;" class="px-3 py-2 text-xs font-bold rounded-md">
+                                        {{ $seller->requested_sp_percentage ? 'Setujui % Baru' : 'Ubah %' }}
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    @empty
+                        <p class="text-sm text-gray-500">Belum ada pengajuan Seller.</p>
+                    @endforelse
+                </div>
+            </div>
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
-
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-
-    Route::post('/seller/apply', [MemberSellerController::class, 'apply'])->name('member.seller.apply');
-    Route::post('/seller/request-sp', [MemberSellerController::class, 'requestSpChange'])->name('member.seller.request_sp');
-
-    Route::prefix('admin')->name('admin.')->group(function () {
-        Route::get('/sellers', [AdminSellerController::class, 'index'])->name('sellers.index');
-        Route::post('/sellers/{id}/approve', [AdminSellerController::class, 'approveSeller'])->name('sellers.approve');
-        Route::patch('/sellers/{id}/approve-sp', [AdminSellerController::class, 'approveSpChange'])->name('sellers.approve_sp');
-        Route::post('/simulate-transaction', [AdminSellerController::class, 'simulateTransaction'])->name('sellers.simulate');
-    });
-});
-
-require __DIR__.'/auth.php';
+            @if($approvedSellers->count() > 0)
+            <div class="bg-white shadow-sm sm:rounded-lg p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-3">Simulasi Transaksi Belanja Member</h3>
+                <form method="POST" action="{{ route('admin.sellers.simulate') }}" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    @csrf
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Pembeli</label>
+                        <select name="buyer_id" class="mt-1 block w-full border-gray-300 rounded-md text-sm">
+                            @foreach($users as $u)
+                                <option value="{{ $u->id }}">{{ $u->name }} (Rp {{ number_format($u->wallet_balance, 0, ',', '.') }})</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Belanja di Seller Aktif</label>
+                        <select name="seller_id" class="mt-1 block w-full border-gray-300 rounded-md text-sm">
+                            @foreach($approvedSellers as $s)
+                                <option value="{{ $s->id }}">{{ $s->store_name }} ({{ $s->sp_percentage }}%)</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Nominal Belanja (Rp)</label>
+                        <input type="number" name="amount_rp" value="100000" required class="mt-1 block w-full border-gray-300 rounded-md text-sm">
+                    </div>
+                    <div class="md:col-span-3">
+                        <button type="submit" style="background-color:#16a34a; color:#ffffff;" class="px-4 py-2 text-sm font-bold rounded-md">Proses Transaksi</button>
+                    </div>
+                </form>
+            </div>
+            @endif
+        </div>
+    </div>
+</x-app-layout>
