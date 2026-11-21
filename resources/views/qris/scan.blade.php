@@ -15,13 +15,19 @@
             <!-- Kamera Scanner QR -->
             <div class="bg-white shadow-sm sm:rounded-lg p-6 text-center">
                 <h3 class="font-semibold text-gray-900 mb-2">Scan QR Seller Swizh</h3>
-                <p id="camStatus" class="text-xs text-gray-500 mb-3">Klik tombol di bawah untuk mengaktifkan kamera belakang HP</p>
+                <p id="camStatus" class="text-xs text-gray-500 mb-3">Tekan tombol biru di bawah untuk membuka kamera belakang</p>
                 
-                <button type="button" id="btnStartCam" onclick="startCamera()" style="background-color:#2563eb; color:#ffffff;" class="px-4 py-2 text-xs font-bold rounded-md shadow mb-3">
-                    📷 Buka Kamera HP
-                </button>
+                <div class="flex justify-center gap-2 mb-3">
+                    <button type="button" id="btnStartCam" onclick="openBackCamera()" style="background-color:#2563eb; color:#ffffff;" class="px-4 py-2 text-xs font-bold rounded-md shadow">
+                        📷 Buka Kamera Belakang
+                    </button>
+                    <label style="background-color:#4b5563; color:#ffffff;" class="px-4 py-2 text-xs font-bold rounded-md shadow cursor-pointer">
+                        📸 Foto QR (Alternatif)
+                        <input type="file" accept="image/*" capture="environment" onchange="scanFromPhoto(this)" class="hidden">
+                    </label>
+                </div>
 
-                <div id="reader" class="mx-auto overflow-hidden rounded-lg bg-black" style="width: 100%; max-width: 300px; min-height: 220px;"></div>
+                <div id="reader" class="mx-auto overflow-hidden rounded-lg bg-gray-900" style="width: 100%; max-width: 300px; min-height: 220px;"></div>
             </div>
 
             <!-- Form Konfirmasi Pembayaran -->
@@ -30,13 +36,13 @@
                 <form method="POST" action="{{ route('qris.pay') }}" class="space-y-4">
                     @csrf
                     <div>
-                        <label class="block text-xs font-medium text-gray-700">Kode QR Toko (Hasil Scan / Pilih Manual)</label>
+                        <label class="block text-xs font-medium text-gray-700">Kode QR Toko</label>
                         <input type="text" id="store_code" name="store_code" value="{{ $selectedSeller ? 'SWZ-STORE-' . $selectedSeller->id : '' }}" required placeholder="Contoh: SWZ-STORE-1" class="mt-1 block w-full border-gray-300 rounded-md text-sm uppercase font-bold text-indigo-700">
                     </div>
 
                     @if($sellers->count() > 0)
                     <div>
-                        <label class="block text-xs text-gray-500">Atau pilih dari daftar Seller aktif (jika uji coba 1 HP):</label>
+                        <label class="block text-xs text-gray-500">Atau pilih cepat dari daftar Seller aktif:</label>
                         <select onchange="document.getElementById('store_code').value = this.value" class="mt-1 block w-full border-gray-300 rounded-md text-xs">
                             <option value="">-- Pilih Seller --</option>
                             @foreach($sellers as $s)
@@ -67,35 +73,54 @@
         </div>
     </div>
 
-    <script src="https://unpkg.com" type="text/javascript"></script>
+    <script src="https://unpkg.com"></script>
     <script>
-        let html5QrCode;
+        function extractStoreCode(decodedText) {
+            let code = decodedText;
+            if (decodedText.includes('store_code=')) {
+                code = decodedText.split('store_code=')[1].split('&')[0];
+            }
+            document.getElementById('store_code').value = code.toUpperCase();
+            document.getElementById('camStatus').innerText = "✓ QR Terdeteksi: " + code.toUpperCase();
+            alert('QR Toko Terdeteksi: ' + code.toUpperCase());
+        }
 
-        function startCamera() {
+        function openBackCamera() {
             const statusEl = document.getElementById('camStatus');
-            statusEl.innerText = "Meminta izin kamera...";
-            
-            html5QrCode = new Html5Qrcode("reader");
-            html5QrCode.start(
-                { facingMode: "environment" },
-                { fps: 10, qrbox: { width: 200, height: 200 } },
-                (decodedText) => {
-                    let code = decodedText;
-                    if (decodedText.includes('store_code=')) {
-                        code = decodedText.split('store_code=')[1].split('&')[0];
-                    }
-                    document.getElementById('store_code').value = code.toUpperCase();
-                    statusEl.innerText = "✓ QR Terdeteksi: " + code.toUpperCase();
-                    html5QrCode.stop();
-                    alert('QR Toko Terdeteksi: ' + code.toUpperCase());
-                },
-                (errorMessage) => { /* Abaikan frame kosong saat mencari QR */ }
-            ).then(() => {
-                statusEl.innerText = "Kamera aktif. Arahkan ke QR Code Seller.";
-                document.getElementById('btnStartCam').style.display = 'none';
-            }).catch((err) => {
-                statusEl.innerText = "Kamera gagal dibuka (" + err + "). Pastikan izin kamera Chrome diizinkan.";
+            statusEl.innerText = "Mencari kamera belakang HP...";
+
+            Html5Qrcode.getCameras().then(devices => {
+                if (devices && devices.length) {
+                    // Pilih kamera terakhir (biasanya kamera belakang utama di Android)
+                    let backCam = devices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('belakang')) || devices[devices.length - 1];
+                    const html5QrCode = new Html5Qrcode("reader");
+                    html5QrCode.start(
+                        backCam.id,
+                        { fps: 10, qrbox: 200 },
+                        (decodedText) => {
+                            extractStoreCode(decodedText);
+                            html5QrCode.stop();
+                        },
+                        () => {}
+                    ).then(() => {
+                        statusEl.innerText = "Kamera aktif! Arahkan ke QR Seller.";
+                    }).catch(err => {
+                        statusEl.innerText = "Gagal start kamera: " + err + ". Gunakan tombol 'Foto QR' di sebelah kanan.";
+                    });
+                } else {
+                    statusEl.innerText = "Kamera tidak ditemukan. Gunakan tombol 'Foto QR' di samping.";
+                }
+            }).catch(err => {
+                statusEl.innerText = "Izin kamera ditolak browser. Gunakan tombol 'Foto QR' di samping.";
             });
+        }
+
+        function scanFromPhoto(input) {
+            if (input.files.length === 0) return;
+            const html5QrCode = new Html5Qrcode("reader");
+            html5QrCode.scanFile(input.files[0], true)
+                .then(decodedText => extractStoreCode(decodedText))
+                .catch(err => alert("QR Code tidak terbaca pada foto. Pastikan gambar jelas."));
         }
     </script>
 </x-app-layout>
