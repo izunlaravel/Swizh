@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AdminSellerController;
 use App\Http\Controllers\MemberSellerController;
+use App\Http\Controllers\QrisPaymentController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -20,6 +21,9 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/seller/apply', [MemberSellerController::class, 'apply'])->name('member.seller.apply');
     Route::post('/seller/request-sp', [MemberSellerController::class, 'requestSpChange'])->name('member.seller.request_sp');
+
+    Route::get('/qris/scan', [QrisPaymentController::class, 'scanPage'])->name('qris.scan');
+    Route::post('/qris/pay', [QrisPaymentController::class, 'processPayment'])->name('qris.pay');
 
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/sellers', [AdminSellerController::class, 'index'])->name('sellers.index');
