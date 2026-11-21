@@ -99,4 +99,15 @@ class AdminSellerController extends Controller
         DB::table("app_settings")->updateOrInsert(["key" => "leader_promo_group_sp"], ["value" => (string) $request->leader_promo_group_sp, "updated_at" => now()]);
         return back()->with("success", "Pengaturan Promo Leader berhasil diperbarui!");
     }
+
+    public function updateLogo(Request $request)
+    {
+        abort_unless(Auth::user()->is_admin, 403);
+        $request->validate(["logo" => "required|image|mimes:png,jpg,jpeg,svg,webp|max:2048"]);
+        $file = $request->file("logo");
+        $filename = "logo-swizh." . $file->getClientOriginalExtension();
+        $file->move(public_path("images"), $filename);
+        DB::table("app_settings")->updateOrInsert(["key" => "site_logo"], ["value" => "images/" . $filename, "updated_at" => now()]);
+        return back()->with("success", "Logo aplikasi berhasil diperbarui!");
+    }
 }

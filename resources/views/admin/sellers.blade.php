@@ -12,6 +12,8 @@
                 <div class="p-4 bg-green-100 border border-green-400 text-green-800 rounded-md text-sm font-medium">{{ session('success') }}</div>
             @endif
 
+            <div class="bg-white shadow-sm sm:rounded-lg p-6 border-l-4 border-blue-600"><h3 class="font-semibold text-gray-900 mb-2">🎨 Pengaturan Logo Aplikasi (Pojok Kiri Atas)</h3><form method="POST" action="{{ route('admin.logo.update') }}" enctype="multipart/form-data" class="flex flex-col sm:flex-row items-start sm:items-center gap-3">@csrf<input type="file" name="logo" accept="image/*" required class="text-xs text-gray-600 border border-gray-300 rounded-md p-1.5 w-full sm:w-auto"><button type="submit" style="background-color:#2563eb;color:#fff;" class="px-4 py-2 text-xs font-bold rounded-md shrink-0">Upload & Ganti Logo</button></form><p class="text-[11px] text-gray-400 mt-2">Format: PNG/JPG/SVG (Maks 2MB). Disarankan latar transparan (PNG).</p></div>
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="bg-white p-5 rounded-lg shadow-sm border-l-4 border-indigo-600">
                     <p class="text-xs text-gray-500 uppercase">Total SP Global ({{ $period }})</p>

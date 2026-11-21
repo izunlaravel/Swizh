@@ -35,6 +35,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/simulate-transaction', [AdminSellerController::class, 'simulateTransaction'])->name('sellers.simulate');
         Route::post('/run-closing', [AdminSellerController::class, 'runClosing'])->name('closing.run');
         Route::post('/update-promo', [AdminSellerController::class, 'updateLeaderPromo'])->name('promo.update');
+        Route::post('/update-logo', [AdminSellerController::class, 'updateLogo'])->name('logo.update');
     });
 });
 
