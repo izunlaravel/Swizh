@@ -62,6 +62,32 @@ class SwizhPointService
         });
     }
 
+    /**
+     * Tentukan target SP Grup Leader: 1 Juta saat Promo Launching, 10 Juta saat Normal
+     */
+    public function getRequiredLeaderGroupSp(string $period): array
+    {
+        $settings = DB::table('app_settings')->pluck('value', 'key');
+        $isPromoActive = ($settings['leader_promo_active'] ?? '0') === '1';
+        $promoUntil = $settings['leader_promo_until_month'] ?? '';
+        $promoTarget = (int) ($settings['leader_promo_group_sp'] ?? 1000000);
+        $normalTarget = (int) ($settings['leader_normal_group_sp'] ?? 10000000);
+
+        if ($isPromoActive && $period <= $promoUntil) {
+            return [
+                'target_sp' => $promoTarget,
+                'is_promo' => true,
+                'promo_until' => $promoUntil,
+            ];
+        }
+
+        return [
+            'target_sp' => $normalTarget,
+            'is_promo' => false,
+            'promo_until' => $promoUntil,
+        ];
+    }
+
     public function hasPersonalSp(int $userId, string $period): bool
     {
         return $this->getPersonalSp($userId, $period) >= 1;
@@ -101,13 +127,19 @@ class SwizhPointService
             }
         }
 
-        $isLeaderQualified = ($personalSp >= 1) && ($activeReferralsCount >= 10) && ($groupSp >= 10000000);
+        $leaderRule = $this->getRequiredLeaderGroupSp($period);
+        $requiredGroupSp = $leaderRule['target_sp'];
+
+        $isLeaderQualified = ($personalSp >= 1) && ($activeReferralsCount >= 10) && ($groupSp >= $requiredGroupSp);
 
         return [
             'period' => $period,
             'personal_sp' => $personalSp,
             'active_referrals' => $activeReferralsCount,
             'group_sp' => $groupSp,
+            'required_group_sp' => $requiredGroupSp,
+            'is_promo_leader' => $leaderRule['is_promo'],
+            'promo_until' => $leaderRule['promo_until'],
             'is_leader_qualified' => $isLeaderQualified,
         ];
     }

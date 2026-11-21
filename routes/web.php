@@ -34,6 +34,7 @@ Route::middleware('auth')->group(function () {
         Route::patch('/sellers/{id}/approve-sp', [AdminSellerController::class, 'approveSpChange'])->name('sellers.approve_sp');
         Route::post('/simulate-transaction', [AdminSellerController::class, 'simulateTransaction'])->name('sellers.simulate');
         Route::post('/run-closing', [AdminSellerController::class, 'runClosing'])->name('closing.run');
+        Route::post('/update-promo', [AdminSellerController::class, 'updateLeaderPromo'])->name('promo.update');
     });
 });
 

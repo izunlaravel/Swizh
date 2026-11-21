@@ -109,11 +109,11 @@
             </div>
 
             <div class="bg-white shadow-sm sm:rounded-lg p-6">
-                <h3 class="font-semibold mb-3">Progres Leader ({{ $period }})</h3>
+                <div class="flex flex-wrap justify-between items-center gap-2 mb-3"><h3 class="font-semibold">Progres Leader ({{ $period }})</h3>@if($stats["is_promo_leader"])<span class="px-2.5 py-0.5 text-[11px] font-bold bg-red-100 text-red-700 rounded-full">🔥 PROMO LAUNCHING (Target 1 Jt s/d {{ $stats["promo_until"] }})</span>@endif</div>
                 <div class="grid grid-cols-3 gap-3 text-center">
                     <div class="p-3 bg-gray-50 rounded"><p class="text-xs text-gray-500">SP Pribadi</p><p class="font-bold">{{ number_format($stats['personal_sp'], 0, ',', '.') }} / 1</p></div>
                     <div class="p-3 bg-gray-50 rounded"><p class="text-xs text-gray-500">Ref Aktif</p><p class="font-bold">{{ $stats['active_referrals'] }} / 10</p></div>
-                    <div class="p-3 bg-gray-50 rounded"><p class="text-xs text-gray-500">SP Grup</p><p class="font-bold">{{ number_format($stats['group_sp'], 0, ',', '.') }} / 10 Jt</p></div>
+                    <div class="p-3 bg-gray-50 rounded"><p class="text-xs text-gray-500">SP Grup</p><p class="font-bold">{{ number_format($stats['group_sp'], 0, ',', '.') }} / {{ $stats['required_group_sp'] >= 1000000 ? ($stats['required_group_sp']/1000000) . ' Jt' : number_format($stats['required_group_sp'], 0, ',', '.') }}</p></div>
                 </div>
             </div>
 

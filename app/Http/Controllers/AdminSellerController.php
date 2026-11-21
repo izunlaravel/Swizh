@@ -90,4 +90,13 @@ class AdminSellerController extends Controller
         }
         return back()->with("success", "Tutup buku periode {$period} berhasil dijalankan! Bonus Leader & Reward telah didistribusikan.");
     }
+
+    public function updateLeaderPromo(Request $request)
+    {
+        abort_unless(Auth::user()->is_admin, 403);
+        DB::table("app_settings")->updateOrInsert(["key" => "leader_promo_active"], ["value" => $request->has("leader_promo_active") ? "1" : "0", "updated_at" => now()]);
+        DB::table("app_settings")->updateOrInsert(["key" => "leader_promo_until_month"], ["value" => $request->leader_promo_until_month, "updated_at" => now()]);
+        DB::table("app_settings")->updateOrInsert(["key" => "leader_promo_group_sp"], ["value" => (string) $request->leader_promo_group_sp, "updated_at" => now()]);
+        return back()->with("success", "Pengaturan Promo Leader berhasil diperbarui!");
+    }
 }
