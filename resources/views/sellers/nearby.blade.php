@@ -46,7 +46,7 @@
 
                         <div class="flex items-center gap-2">
                             @if($seller->latitude && $seller->longitude)
-                                <a href="https://google.com{{ $seller->latitude }},{{ $seller->longitude }}" style="background-color:#4b5563;color:#ffffff;" class="px-3 py-2 text-xs font-semibold rounded-md">
+                                <a href="geo:{{ $seller->latitude }},{{ $seller->longitude }}?q={{ $seller->latitude }},{{ $seller->longitude }}({{ urlencode($seller->store_name) }})" rel="noopener noreferrer" style="background-color:#4b5563;color:#ffffff;" class="px-3 py-2 text-xs font-semibold rounded-md">
                                     🗺 Rute Maps
                                 </a>
                             @endif
