@@ -95,6 +95,7 @@
                                 <input type="number" step="0.01" name="requested_sp_percentage" placeholder="SP Baru %" required class="w-28 text-xs border-gray-300 rounded-md">
                                 <button type="submit" class="px-3 py-2 bg-indigo-600 text-white text-xs rounded-md">Ajukan Ubah %</button>
                             </form>
+                            <form id="gpsForm" method="POST" action="{{ route('member.seller.location') }}" class="mt-2">@csrf<input type="hidden" name="latitude" id="latInput"><input type="hidden" name="longitude" id="lngInput"><button type="button" onclick="saveGpsLocation()" style="background-color:#0d9488;color:#fff;" class="px-3 py-1.5 text-xs font-semibold rounded-md">📍 Simpan Lokasi GPS Toko ({{ $mySeller->latitude ? 'Tersimpan' : 'Belum Set' }})</button></form><script>function saveGpsLocation(){if(!navigator.geolocation){alert('GPS tidak didukung browser');return;}navigator.geolocation.getCurrentPosition(function(pos){document.getElementById('latInput').value=pos.coords.latitude;document.getElementById('lngInput').value=pos.coords.longitude;document.getElementById('gpsForm').submit();},function(err){alert('Gagal ambil GPS: '+err.message);});}</script>
                         </div>
                         <div class="text-center bg-white p-3 rounded-lg border shadow-sm">
                             <div class="inline-block">

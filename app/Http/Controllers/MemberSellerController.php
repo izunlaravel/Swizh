@@ -68,3 +68,5 @@ class MemberSellerController extends Controller
         return back()->with('success', 'Permintaan perubahan persentase SP ke ' . $request->requested_sp_percentage . '% telah dikirim ke Admin.');
     }
 }
+
+// Tambahkan di dalam class MemberSellerController sebelum kurung kurawal penutup
