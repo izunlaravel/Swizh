@@ -12,74 +12,57 @@ class AdminSellerController extends Controller
 {
     public function index()
     {
-        abort_unless(Auth::user()->is_admin, 403, 'Hanya Admin Swizh yang dapat mengakses halaman ini.');
+        abort_unless(Auth::user()->is_admin, 403);
 
         $period = now()->format('Y-m');
-
         $sellers = DB::table('sellers')
             ->join('users as owners', 'sellers.user_id', '=', 'owners.id')
             ->leftJoin('users as referrers', 'sellers.referred_by', '=', 'referrers.id')
             ->select('sellers.*', 'owners.name as owner_name', 'owners.email as owner_email', 'referrers.name as referrer_name')
+            ->orderByRaw("CASE WHEN sellers.status = 'pending' OR sellers.requested_sp_percentage IS NOT NULL THEN 0 ELSE 1 END")
             ->orderByDesc('sellers.id')
             ->get();
 
         $users = User::select('id', 'name', 'email', 'referral_code', 'wallet_balance')->get();
-
-        $globalSpMonth = (int) DB::table('sp_transactions')
-            ->where('period_month', $period)
-            ->where('status', 'paid')
-            ->sum('sp_earned');
-
+        $approvedSellers = $sellers->where('status', 'approved');
+        $globalSpMonth = (int) DB::table('sp_transactions')->where('period_month', $period)->where('status', 'paid')->sum('sp_earned');
         $leaderPoolRp = (int) round($globalSpMonth * 0.05);
 
-        return view('admin.sellers', compact('sellers', 'users', 'period', 'globalSpMonth', 'leaderPoolRp'));
+        return view('admin.sellers', compact('sellers', 'approvedSellers', 'users', 'period', 'globalSpMonth', 'leaderPoolRp'));
     }
 
-    public function store(Request $request)
+    // Admin menyetujui pendaftaran Seller baru
+    public function approveSeller(int $id)
     {
         abort_unless(Auth::user()->is_admin, 403);
 
-        $request->validate([
-            'user_id' => 'required|exists:users,id',
-            'store_name' => 'required|string|max:255',
-            'sp_percentage' => 'required|numeric|min:0.1|max:100',
-            'referrer_code' => 'nullable|string|exists:users,referral_code',
-        ]);
+        $seller = DB::table('sellers')->where('id', $id)->firstOrFail();
 
-        $referrerId = null;
-        if ($request->filled('referrer_code')) {
-            $referrerId = User::where('referral_code', strtoupper($request->referrer_code))->value('id');
-        }
-
-        DB::table('sellers')->insert([
-            'user_id' => $request->user_id,
-            'referred_by' => $referrerId,
-            'store_name' => $request->store_name,
-            'sp_percentage' => $request->sp_percentage,
+        DB::table('sellers')->where('id', $id)->update([
+            'status' => 'approved',
             'is_active' => true,
-            'created_at' => now(),
             'updated_at' => now(),
         ]);
 
-        User::where('id', $request->user_id)->update(['is_seller' => true]);
+        User::where('id', $seller->user_id)->update(['is_seller' => true]);
 
-        return back()->with('success', 'Seller baru berhasil didaftarkan!');
+        return back()->with('success', "Toko {$seller->store_name} resmi disetujui menjadi Seller aktif!");
     }
 
-    public function updatePercentage(Request $request, int $id)
+    // Admin menyetujui perubahan persentase SP yang diajukan Seller
+    public function approveSpChange(Request $request, int $id)
     {
         abort_unless(Auth::user()->is_admin, 403);
 
-        $request->validate([
-            'sp_percentage' => 'required|numeric|min:0.1|max:100',
-        ]);
+        $request->validate(['sp_percentage' => 'required|numeric|min:0.1|max:100']);
 
         DB::table('sellers')->where('id', $id)->update([
             'sp_percentage' => $request->sp_percentage,
+            'requested_sp_percentage' => null,
             'updated_at' => now(),
         ]);
 
-        return back()->with('success', 'Persentase SP Seller berhasil diubah oleh Admin!');
+        return back()->with('success', 'Persentase SP Seller resmi disetujui & diperbarui!');
     }
 
     public function simulateTransaction(Request $request, SwizhPointService $spService)
