@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\AdminSellerController;
+use App\Http\Controllers\MemberSellerController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -15,14 +17,16 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    Route::post('/seller/apply', [MemberSellerController::class, 'apply'])->name('member.seller.apply');
+    Route::post('/seller/request-sp', [MemberSellerController::class, 'requestSpChange'])->name('member.seller.request_sp');
+
+    Route::prefix('admin')->name('admin.')->group(function () {
+        Route::get('/sellers', [AdminSellerController::class, 'index'])->name('sellers.index');
+        Route::post('/sellers/{id}/approve', [AdminSellerController::class, 'approveSeller'])->name('sellers.approve');
+        Route::patch('/sellers/{id}/approve-sp', [AdminSellerController::class, 'approveSpChange'])->name('sellers.approve_sp');
+        Route::post('/simulate-transaction', [AdminSellerController::class, 'simulateTransaction'])->name('sellers.simulate');
+    });
 });
 
 require __DIR__.'/auth.php';
-
-Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
-    Route::get('/sellers', [\App\Http\Controllers\AdminSellerController::class, 'index'])->name('sellers.index');
-    Route::post('/sellers', [\App\Http\Controllers\AdminSellerController::class, 'store'])->name('sellers.store');
-    Route::patch('/sellers/{id}', [\App\Http\Controllers\AdminSellerController::class, 'updatePercentage'])->name('sellers.update');
-    Route::post('/simulate-transaction', [\App\Http\Controllers\AdminSellerController::class, 'simulateTransaction'])->name('sellers.simulate');
-});
-Route::middleware(["auth"])->prefix("admin")->name("admin.")->group(function () { Route::get("/sellers", [\App\Http\Controllers\AdminSellerController::class, "index"])->name("sellers.index"); Route::post("/sellers", [\App\Http\Controllers\AdminSellerController::class, "store"])->name("sellers.store"); Route::patch("/sellers/{id}", [\App\Http\Controllers\AdminSellerController::class, "updatePercentage"])->name("sellers.update"); Route::post("/simulate-transaction", [\App\Http\Controllers\AdminSellerController::class, "simulateTransaction"])->name("sellers.simulate"); });
