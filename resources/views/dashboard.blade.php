@@ -98,7 +98,7 @@
                         </div>
                         <div class="text-center bg-white p-3 rounded-lg border shadow-sm">
                             <div class="inline-block">
-                                {!! \SimpleSoftwareIO\QrCode\Facades\QrCode::size(140)->generate(url('/qris/scan?store_code=SWZ-STORE-' . $mySeller->id)) !!}
+                                <div id="sellerQr"></div><script src="https://jsdelivr.net"></script><script>var qr=qrcode(0,"M");qr.addData("SWZ-STORE-{{ $mySeller->id }}");qr.make();document.getElementById("sellerQr").innerHTML=qr.createImgTag(4);</script>
                             </div>
                             <p class="text-[11px] font-bold text-gray-700 mt-1">SCAN QRIS SWIZH</p>
                         </div>
