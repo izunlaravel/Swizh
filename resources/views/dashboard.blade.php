@@ -97,7 +97,7 @@
                             </form>
                         </div>
                         <div class="text-center bg-white p-3 rounded-lg border shadow-sm">
-                            <img src="https://qrserver.com{{ urlencode(url('/qris/scan?store_code=SWZ-STORE-' . $mySeller->id)) }}" alt="QR Toko" class="mx-auto">
+                            <div id="storeQrBox" class="flex justify-center"></div><script src="https://cloudflare.com"></script><script>new QRCode(document.getElementById("storeQrBox"), { text: "{{ url('/qris/scan?store_code=SWZ-STORE-' . $mySeller->id) }}", width: 140, height: 140 });</script>
                             <p class="text-[11px] font-bold text-gray-700 mt-1">SCAN QRIS SWIZH</p>
                         </div>
                     </div>
