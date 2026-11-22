@@ -9,24 +9,23 @@ use App\Http\Controllers\WithdrawController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/terms', function () { return view('terms'); })->name('terms');
-
-Route::get('/', function () {
-    return view('welcome');
-});
-
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/', function () { return view('welcome'); });
+Route::get('/dashboard', function () { return view('dashboard'); })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::post('/profile/photo', [MemberSellerController::class, 'updateProfilePhoto'])->name('member.profile.photo');
 
     Route::post('/seller/apply', [MemberSellerController::class, 'apply'])->name('member.seller.apply');
     Route::post('/seller/request-sp', [MemberSellerController::class, 'requestSpChange'])->name('member.seller.request_sp');
-    Route::post('/seller/location', [MemberSellerController::class, 'updateLocation'])->name('member.seller.location');
-    Route::post('/profile/photo', [MemberSellerController::class, 'updateProfilePhoto'])->name('member.profile.photo');
+    Route::post('/seller/update-profile', [MemberSellerController::class, 'updateSellerProfile'])->name('member.seller.update_profile');
+    Route::post('/seller/deposit', [MemberSellerController::class, 'topupCashDeposit'])->name('member.seller.deposit');
+    Route::post('/seller/products', [MemberSellerController::class, 'uploadProduct'])->name('member.seller.product_upload');
+    Route::delete('/seller/products/{id}', [MemberSellerController::class, 'deleteProduct'])->name('member.seller.product_delete');
+    Route::post('/seller/{sellerId}/review', [MemberSellerController::class, 'postReview'])->name('seller.review');
+    Route::post('/inbox/send', [MemberSellerController::class, 'sendInbox'])->name('member.inbox.send');
 
     Route::get('/qris/scan', [QrisPaymentController::class, 'scanPage'])->name('qris.scan');
     Route::post('/qris/pay', [QrisPaymentController::class, 'processPayment'])->name('qris.pay');
