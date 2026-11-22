@@ -13,7 +13,7 @@
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
-    </head>
+    <link rel="manifest" href="/manifest.json"><meta name="theme-color" content="#4f46e5"></head>
     <body class="font-sans antialiased">
         <div class="min-h-screen bg-gray-100">
             @include('layouts.navigation')
@@ -32,5 +32,5 @@
                 {{ $slot }}
             </main>
         </div>
-    </body>
+    <script>if("serviceWorker" in navigator){navigator.serviceWorker.register("/sw.js");}</script></body>
 </html>
