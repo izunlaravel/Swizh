@@ -12,7 +12,7 @@ Route::get('/terms', function () { return view('terms'); })->name('terms');
 Route::get('/', function () { return view('welcome'); });
 Route::get('/dashboard', function () { return view('dashboard'); })->middleware(['auth', 'verified'])->name('dashboard');
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'throttle:60,1'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
@@ -28,14 +28,17 @@ Route::middleware('auth')->group(function () {
     Route::post('/inbox/send', [MemberSellerController::class, 'sendInbox'])->name('member.inbox.send');
 
     Route::get('/qris/scan', [QrisPaymentController::class, 'scanPage'])->name('qris.scan');
-    Route::post('/qris/pay', [QrisPaymentController::class, 'processPayment'])->name('qris.pay');
+    Route::post('/qris/pay', [QrisPaymentController::class, 'processPayment'])->middleware('throttle:15,1')->name('qris.pay');
     Route::get('/tenants/nearby', [NearbySellerController::class, 'index'])->name('sellers.nearby');
-    Route::post('/withdraw', [WithdrawController::class, 'store'])->name('withdraw.store');
+    Route::post('/withdraw', [WithdrawController::class, 'store'])->middleware('throttle:5,1')->name('withdraw.store');
 
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/sellers', [AdminSellerController::class, 'index'])->name('sellers.index');
         Route::post('/sellers/{id}/approve', [AdminSellerController::class, 'approveSeller'])->name('sellers.approve');
         Route::patch('/sellers/{id}/approve-sp', [AdminSellerController::class, 'approveSpChange'])->name('sellers.approve_sp');
+        Route::post('/sellers/{id}/approve-non-sp', [AdminSellerController::class, 'approveNonSpNotes'])->name('sellers.approve_non_sp');
+        Route::post('/withdrawals/{id}', [AdminSellerController::class, 'processWithdraw'])->name('withdrawals.process');
+        Route::post('/broadcast-promo', [AdminSellerController::class, 'storePromoBroadcast'])->name('promo.broadcast');
         Route::post('/simulate-transaction', [AdminSellerController::class, 'simulateTransaction'])->name('sellers.simulate');
         Route::post('/run-closing', [AdminSellerController::class, 'runClosing'])->name('closing.run');
         Route::post('/update-promo', [AdminSellerController::class, 'updateLeaderPromo'])->name('promo.update');
