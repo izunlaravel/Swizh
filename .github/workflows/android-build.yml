@@ -27,42 +27,21 @@ jobs:
           java-version: '21'
 
       - name: Build Swizh Android Project
+        env:
+          APP_DOMAIN: ${{ github.event.inputs.app_domain }}
         run: |
           mkdir -p mobile-app/www
-          echo "<!DOCTYPE html><html><body style='font-family:sans-serif;text-align:center;padding-top:40%'><h3>Memuat Swizh...</h3></body></html>" > mobile-app/www/index.html
+          echo "<h3>Memuat Swizh...</h3>" > mobile-app/www/index.html
           cd mobile-app
           npm init -y
           npm install @capacitor/core @capacitor/cli @capacitor/android
-          node -e '
-            const fs = require("fs");
-            fs.writeFileSync("capacitor.config.json", JSON.stringify({
-              appId: "id.swizh.app",
-              appName: "Swizh",
-              webDir: "www",
-              server: {
-                url: "https://" + process.env.APP_DOMAIN + "/dashboard",
-                cleartext: false,
-                allowNavigation: ["*"]
-              }
-            }, null, 2));
-          '
+          npx cap init "Swizh" "id.swizh.app" --web-dir=www
+          node -e 'const fs=require("fs");const c=JSON.parse(fs.readFileSync("capacitor.config.json"));c.server={url:"https://"+process.env.APP_DOMAIN+"/dashboard",cleartext:false,allowNavigation:["*"]};fs.writeFileSync("capacitor.config.json",JSON.stringify(c,null,2));'
           npx cap add android
-          node -e '
-            const fs = require("fs");
-            const p = "android/app/src/main/AndroidManifest.xml";
-            let xml = fs.readFileSync(p, "utf8");
-            const perms = `
-    <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />`;
-            xml = xml.replace("<application", perms + "\n    <application");
-            fs.writeFileSync(p, xml);
-          '
+          node -e 'const fs=require("fs");const p="android/app/src/main/AndroidManifest.xml";let x=fs.readFileSync(p,"utf8");x=x.replace("<application","<uses-permission android:name=\"android.permission.CAMERA\" />\n    <uses-permission android:name=\"android.permission.ACCESS_FINE_LOCATION\" />\n    <uses-permission android:name=\"android.permission.ACCESS_COARSE_LOCATION\" />\n    <application");fs.writeFileSync(p,x);'
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug bundleRelease --stacktrace
-        env:
-          APP_DOMAIN: ${{ github.event.inputs.app_domain }}
 
       - name: Create Play Store Keystore
         run: |
