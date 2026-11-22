@@ -43,6 +43,7 @@ Route::middleware(['auth', 'throttle:60,1'])->group(function () {
         Route::post('/run-closing', [AdminSellerController::class, 'runClosing'])->name('closing.run');
         Route::post('/update-promo', [AdminSellerController::class, 'updateLeaderPromo'])->name('promo.update');
         Route::post('/update-logo', [AdminSellerController::class, 'updateLogo'])->name('logo.update');
+        Route::post('/update-pg', [AdminSellerController::class, 'updatePaymentGateway'])->name('pg.update');
     });
 });
 

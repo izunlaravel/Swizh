@@ -221,4 +221,17 @@ class AdminSellerController extends Controller
         DB::table('app_settings')->updateOrInsert(['key' => 'site_logo'], ['value' => 'images/' . $filename, 'updated_at' => now()]);
         return back()->with('success', 'Logo diperbarui!');
     }
+
+    public function updatePaymentGateway(Request $request)
+    {
+        abort_unless(Auth::user()->is_admin, 403);
+        $keys = ["pg_active_gateway", "midtrans_server_key", "midtrans_client_key", "xendit_secret_key", "xendit_callback_token"];
+        foreach ($keys as $k) {
+            if ($request->has($k)) {
+                DB::table("app_settings")->updateOrInsert(["key" => $k], ["value" => trim((string) $request->input($k)), "updated_at" => now()]);
+            }
+        }
+        DB::table("app_settings")->updateOrInsert(["key" => "pg_is_production"], ["value" => $request->has("pg_is_production") ? "1" : "0", "updated_at" => now()]);
+        return back()->with("success", "Konfigurasi API Payment Gateway berhasil disimpan!");
+    }
 }
