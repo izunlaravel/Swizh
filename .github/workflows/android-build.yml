@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       app_domain:
-        description: 'Domain HTTPS Aplikasi Anda (contoh: swizh.id)'
+        description: 'Domain HTTPS Aplikasi Anda (contoh: friendly-waffle-...-8000.app.github.dev)'
         required: true
         default: 'swizh.id'
 
@@ -15,48 +15,53 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v4
 
-      - name: Setup Node & Java 17
+      - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - uses: actions/setup-java@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Generate Keystore & TWA Android Project
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Build Android APK & AAB via Capacitor
         run: |
-          npm install -g @bubblewrap/cli
-          keytool -genkey -v -keystore swizh.keystore -alias swizh -keyalg RSA -keysize 2048 -validity 10000 -storepass swizh123456 -keypass swizh123456 -dname "CN=Swizh Indonesia, OU=Tech, O=Swizh, L=Medan, S=Sumatera Utara, C=ID"
-          mkdir android-app && cd android-app
-          cat << 'JSON' > twa-manifest.json
+          mkdir -p mobile-wrapper/www
+          echo "<h1>Memuat Swizh...</h1>" > mobile-wrapper/www/index.html
+          cd mobile-wrapper
+          npm init -y
+          npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6
+          cat << 'JSON' > capacitor.config.json
           {
-            "packageId": "id.swizh.app",
-            "host": "${{ github.event.inputs.app_domain }}",
-            "name": "Swizh",
-            "launcherName": "Swizh",
-            "display": "standalone",
-            "themeColor": "#4F46E5",
-            "navigationColor": "#FFFFFF",
-            "backgroundColor": "#FFFFFF",
-            "enableNotifications": true,
-            "startUrl": "/dashboard",
-            "iconUrl": "https://${{ github.event.inputs.app_domain }}/images/logo-swizh.png",
-            "signingKey": { "path": "../swizh.keystore", "alias": "swizh" },
-            "appVersionName": "1.0.0",
-            "appVersionCode": 1,
-            "features": { "locationDelegation": { "enabled": true } },
-            "generatorApp": "bubblewrap-cli"
+            "appId": "id.swizh.app",
+            "appName": "Swizh",
+            "webDir": "www",
+            "server": {
+              "url": "https://${{ github.event.inputs.app_domain }}/dashboard",
+              "cleartext": false,
+              "allowNavigation": ["*"]
+            }
           }
           JSON
-          bubblewrap update --manifest=twa-manifest.json --skipPwaValidation
-          bubblewrap build --skipPwaValidation
+          npx cap add android
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug bundleRelease
+
+      - name: Generate Release Keystore
+        run: |
+          keytool -genkey -v -keystore swizh.keystore -alias swizh -keyalg RSA -keysize 2048 -validity 10000 -storepass swizh123456 -keypass swizh123456 -dname "CN=Swizh Indonesia, OU=Tech, O=Swizh, L=Medan, S=Sumatera Utara, C=ID"
 
       - name: Upload APK, AAB & Keystore
         uses: actions/upload-artifact@v4
         with:
-          name: Swizh-PlayStore-Release
+          name: Swizh-Android-Release
           path: |
-            android-app/app-release-signed.apk
-            android-app/app-release-bundle.aab
+            mobile-wrapper/android/app/build/outputs/apk/debug/app-debug.apk
+            mobile-wrapper/android/app/build/outputs/bundle/release/app-release.aab
             swizh.keystore
