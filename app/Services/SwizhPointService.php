@@ -8,14 +8,37 @@ use Illuminate\Support\Str;
 
 class SwizhPointService
 {
-    public function recordTransaction(int $buyerId, int $sellerId, int $amountRp): array
+    public function recordTransaction(int $buyerId, int $sellerId, int $amountRp, string $paymentMethod = 'qris_gateway', int $nonSpAmountRp = 0): array
     {
-        return DB::transaction(function () use ($buyerId, $sellerId, $amountRp) {
+        return DB::transaction(function () use ($buyerId, $sellerId, $amountRp, $paymentMethod, $nonSpAmountRp) {
             $period = now()->format('Y-m');
             $buyer = User::findOrFail($buyerId);
-            $seller = DB::table('sellers')->where('id', $sellerId)->firstOrFail();
+            $seller = DB::table('sellers')->where('id', $sellerId)->lockForUpdate()->firstOrFail();
 
-            $spEarned = (int) round($amountRp * ($seller->sp_percentage / 100));
+            if ($seller->user_id === $buyer->id) {
+                throw new \Exception('Anda tidak dapat bertransaksi di toko milik sendiri.');
+            }
+
+            $spEligibleAmount = max(0, $amountRp - $nonSpAmountRp);
+            $spEarned = (int) round($spEligibleAmount * ($seller->sp_percentage / 100));
+            $totalSpObligationRp = (int) round($spEarned * 0.655);
+
+            if ($paymentMethod === 'wallet_balance') {
+                $buyerLocked = DB::table('users')->where('id', $buyerId)->lockForUpdate()->first();
+                if ($buyerLocked->wallet_balance < $amountRp) {
+                    throw new \Exception('Saldo Wallet Anda tidak mencukupi.');
+                }
+                DB::table('users')->where('id', $buyerId)->decrement('wallet_balance', $amountRp);
+                $netToSeller = max(0, $amountRp - $totalSpObligationRp);
+                DB::table('users')->where('id', $seller->user_id)->increment('wallet_balance', $netToSeller);
+            } elseif ($paymentMethod === 'cash_deposit') {
+                if ($seller->cash_deposit_balance < 100000 || $seller->cash_deposit_balance < $totalSpObligationRp) {
+                    throw new \Exception('Merchant belum mengaktifkan pembayaran Tunai/Cash (Deposit minimal Rp 100.000).');
+                }
+                if ($totalSpObligationRp > 0) {
+                    DB::table('sellers')->where('id', $seller->id)->decrement('cash_deposit_balance', $totalSpObligationRp);
+                }
+            }
 
             $txId = DB::table('sp_transactions')->insertGetId([
                 'invoice_code' => 'INV-' . now()->format('Ymd') . '-' . strtoupper(Str::random(5)),
@@ -23,6 +46,7 @@ class SwizhPointService
                 'seller_id' => $sellerId,
                 'transaction_amount' => $amountRp,
                 'sp_earned' => $spEarned,
+                'payment_method' => $paymentMethod,
                 'period_month' => $period,
                 'status' => 'paid',
                 'created_at' => now(),
@@ -32,6 +56,7 @@ class SwizhPointService
             $directBonus = (int) round($spEarned * 0.40);
             if ($directBonus > 0) {
                 $this->creditBonus($buyer->id, $txId, 'direct_40', $directBonus, $period, 'approved', "Bonus langsung 40% ({$seller->store_name})");
+                $this->sendNotification($buyer->id, 'Bonus Langsung Masuk!', "Anda mendapat +Rp " . number_format($directBonus, 0, ',', '.') . " dari belanja di {$seller->store_name}.");
             }
 
             $this->unlockPendingBonusesIfQualified($buyer->id, $period);
@@ -39,16 +64,20 @@ class SwizhPointService
             if ($buyer->referred_by) {
                 $refMemberBonus = (int) round($spEarned * 0.10);
                 if ($refMemberBonus > 0) {
-                    $status = $this->hasPersonalSp($buyer->referred_by, $period) ? 'approved' : 'pending';
+                    $isQualified = $this->hasPersonalSp($buyer->referred_by, $period);
+                    $status = $isQualified ? 'approved' : 'pending';
                     $this->creditBonus($buyer->referred_by, $txId, 'ref_member_10', $refMemberBonus, $period, $status, "Bonus referral member 10% ({$buyer->name})");
+                    $this->sendNotification($buyer->referred_by, $isQualified ? 'Bonus Referral Cair!' : 'Bonus Referral Pending', "Member {$buyer->name} belanja di {$seller->store_name}. Bonus +Rp " . number_format($refMemberBonus, 0, ',', '.'));
                 }
             }
 
             if ($seller->referred_by) {
                 $refSellerBonus = (int) round($spEarned * 0.005);
                 if ($refSellerBonus > 0) {
-                    $status = $this->hasPersonalSp($seller->referred_by, $period) ? 'approved' : 'pending';
+                    $isQualified = $this->hasPersonalSp($seller->referred_by, $period);
+                    $status = $isQualified ? 'approved' : 'pending';
                     $this->creditBonus($seller->referred_by, $txId, 'ref_seller_05', $refSellerBonus, $period, $status, "Bonus referral omset seller 0.5% ({$seller->store_name})");
+                    $this->sendNotification($seller->referred_by, $isQualified ? 'Bonus Omset Seller Cair!' : 'Bonus Seller Pending', "Toko binaan {$seller->store_name} mencatat transaksi. Bonus +Rp " . number_format($refSellerBonus, 0, ',', '.'));
                 }
             }
 
@@ -58,13 +87,23 @@ class SwizhPointService
                 'sp_percentage' => $seller->sp_percentage,
                 'sp_earned' => $spEarned,
                 'direct_bonus' => $directBonus,
+                'payment_method' => $paymentMethod,
             ];
         });
     }
 
-    /**
-     * Tentukan target SP Grup Leader: 1 Juta saat Promo Launching, 10 Juta saat Normal
-     */
+    public function sendNotification(int $userId, string $title, string $message): void
+    {
+        DB::table('user_notifications')->insert([
+            'user_id' => $userId,
+            'title' => $title,
+            'message' => $message,
+            'is_read' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
     public function getRequiredLeaderGroupSp(string $period): array
     {
         $settings = DB::table('app_settings')->pluck('value', 'key');
@@ -74,18 +113,9 @@ class SwizhPointService
         $normalTarget = (int) ($settings['leader_normal_group_sp'] ?? 10000000);
 
         if ($isPromoActive && $period <= $promoUntil) {
-            return [
-                'target_sp' => $promoTarget,
-                'is_promo' => true,
-                'promo_until' => $promoUntil,
-            ];
+            return ['target_sp' => $promoTarget, 'is_promo' => true, 'promo_until' => $promoUntil];
         }
-
-        return [
-            'target_sp' => $normalTarget,
-            'is_promo' => false,
-            'promo_until' => $promoUntil,
-        ];
+        return ['target_sp' => $normalTarget, 'is_promo' => false, 'promo_until' => $promoUntil];
     }
 
     public function hasPersonalSp(int $userId, string $period): bool
@@ -106,7 +136,6 @@ class SwizhPointService
     {
         $personalSp = $this->getPersonalSp($userId, $period);
         $referralIds = DB::table('users')->where('referred_by', $userId)->pluck('id');
-
         $activeReferralsCount = 0;
         $groupSp = 0;
 
@@ -120,16 +149,13 @@ class SwizhPointService
                 ->get();
 
             foreach ($referralSpSums as $row) {
-                if ($row->total_sp >= 1) {
-                    $activeReferralsCount++;
-                }
+                if ($row->total_sp >= 1) $activeReferralsCount++;
                 $groupSp += (int) $row->total_sp;
             }
         }
 
         $leaderRule = $this->getRequiredLeaderGroupSp($period);
         $requiredGroupSp = $leaderRule['target_sp'];
-
         $isLeaderQualified = ($personalSp >= 1) && ($activeReferralsCount >= 10) && ($groupSp >= $requiredGroupSp);
 
         return [
@@ -146,9 +172,7 @@ class SwizhPointService
 
     public function unlockPendingBonusesIfQualified(int $userId, string $period): void
     {
-        if (!$this->hasPersonalSp($userId, $period)) {
-            return;
-        }
+        if (!$this->hasPersonalSp($userId, $period)) return;
 
         $pendingAmount = DB::table('bonus_ledgers')
             ->where('user_id', $userId)
@@ -164,6 +188,7 @@ class SwizhPointService
                 ->update(['status' => 'approved', 'updated_at' => now()]);
 
             DB::table('users')->where('id', $userId)->increment('wallet_balance', $pendingAmount);
+            $this->sendNotification($userId, 'Bonus Pending Cair!', "Syarat 1 SP terpenuhi! Rp " . number_format($pendingAmount, 0, ',', '.') . " masuk ke Wallet.");
         }
     }
 

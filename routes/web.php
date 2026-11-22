@@ -5,6 +5,7 @@ use App\Http\Controllers\AdminSellerController;
 use App\Http\Controllers\MemberSellerController;
 use App\Http\Controllers\QrisPaymentController;
 use App\Http\Controllers\NearbySellerController;
+use App\Http\Controllers\WithdrawController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/terms', function () { return view('terms'); })->name('terms');
@@ -30,6 +31,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/qris/scan', [QrisPaymentController::class, 'scanPage'])->name('qris.scan');
     Route::post('/qris/pay', [QrisPaymentController::class, 'processPayment'])->name('qris.pay');
     Route::get('/tenants/nearby', [NearbySellerController::class, 'index'])->name('sellers.nearby');
+    Route::post('/withdraw', [WithdrawController::class, 'store'])->name('withdraw.store');
 
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/sellers', [AdminSellerController::class, 'index'])->name('sellers.index');
