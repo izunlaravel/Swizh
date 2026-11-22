@@ -1,18 +1,18 @@
-name: Build Swizh Android App (APK & AAB)
+name: Build Swizh Android App
 
 on:
   workflow_dispatch:
     inputs:
       app_domain:
-        description: 'Domain HTTPS Aplikasi Anda (contoh: friendly-waffle-...-8000.app.github.dev)'
+        description: 'Domain HTTPS Aplikasi Anda (tanpa https://)'
         required: true
-        default: 'swizh.id'
+        default: 'friendly-waffle-qvxr6rv5gp4pf66pr-8000.app.github.dev'
 
 jobs:
-  build-android:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repo
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Setup Node.js 20
@@ -20,48 +20,53 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Setup Java 17
+      - name: Setup Java 21
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Build Android APK & AAB via Capacitor
+      - name: Build Swizh Android Project
         run: |
-          mkdir -p mobile-wrapper/www
-          echo "<h1>Memuat Swizh...</h1>" > mobile-wrapper/www/index.html
-          cd mobile-wrapper
+          mkdir -p mobile-app/www
+          echo "<!DOCTYPE html><html><body style='font-family:sans-serif;text-align:center;padding-top:40%'><h3>Memuat Swizh...</h3></body></html>" > mobile-app/www/index.html
+          cd mobile-app
           npm init -y
-          npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6
-          cat << 'JSON' > capacitor.config.json
-          {
-            "appId": "id.swizh.app",
-            "appName": "Swizh",
-            "webDir": "www",
-            "server": {
-              "url": "https://${{ github.event.inputs.app_domain }}/dashboard",
-              "cleartext": false,
-              "allowNavigation": ["*"]
-            }
-          }
-          JSON
+          npm install @capacitor/core @capacitor/cli @capacitor/android
+          node -e '
+            const fs = require("fs");
+            fs.writeFileSync("capacitor.config.json", JSON.stringify({
+              appId: "id.swizh.app",
+              appName: "Swizh",
+              webDir: "www",
+              server: {
+                url: "https://" + process.env.APP_DOMAIN + "/dashboard",
+                cleartext: false,
+                allowNavigation: ["*"]
+              }
+            }, null, 2));
+          '
           npx cap add android
+          # Tambahkan izin Kamera (Scan QRIS) dan GPS ke AndroidManifest.xml
+          sed -i 's|<uses-permission android:name="android.permission.INTERNET" />|<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.CAMERA" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />|' android/app/src/main/AndroidManifest.xml
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug bundleRelease
+        env:
+          APP_DOMAIN: ${{ github.event.inputs.app_domain }}
 
-      - name: Generate Release Keystore
+      - name: Create Play Store Keystore
         run: |
-          keytool -genkey -v -keystore swizh.keystore -alias swizh -keyalg RSA -keysize 2048 -validity 10000 -storepass swizh123456 -keypass swizh123456 -dname "CN=Swizh Indonesia, OU=Tech, O=Swizh, L=Medan, S=Sumatera Utara, C=ID"
+          keytool -genkey -v -keystore swizh-release.keystore -alias swizh -keyalg RSA -keysize 2048 -validity 10000 -storepass swizh123456 -keypass swizh123456 -dname "CN=Swizh Indonesia, OU=IT, O=Swizh, L=Medan, S=Sumatera Utara, C=ID"
 
-      - name: Upload APK, AAB & Keystore
+      - name: Upload APK & AAB Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Swizh-Android-Release
+          name: Swizh-Android-Build
           path: |
-            mobile-wrapper/android/app/build/outputs/apk/debug/app-debug.apk
-            mobile-wrapper/android/app/build/outputs/bundle/release/app-release.aab
-            swizh.keystore
+            mobile-app/android/app/build/outputs/apk/debug/app-debug.apk
+            mobile-app/android/app/build/outputs/bundle/release/app-release.aab
+            swizh-release.keystore
