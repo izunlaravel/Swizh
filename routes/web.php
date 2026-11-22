@@ -7,6 +7,8 @@ use App\Http\Controllers\QrisPaymentController;
 use App\Http\Controllers\NearbySellerController;
 use Illuminate\Support\Facades\Route;
 
+Route::get('/terms', function () { return view('terms'); })->name('terms');
+
 Route::get('/', function () {
     return view('welcome');
 });

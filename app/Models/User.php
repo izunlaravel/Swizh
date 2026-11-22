@@ -6,17 +6,27 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
 
     protected $fillable = [
         'name',
         'email',
+        'phone',
+        'profile_photo',
         'password',
         'referral_code',
         'referred_by',
+        'wallet_balance',
+        'bank_name',
+        'bank_account_number',
+        'bank_account_name',
+        'is_seller',
+        'is_admin',
+        'terms_accepted_at',
     ];
 
     protected $hidden = [
@@ -28,6 +38,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'terms_accepted_at' => 'datetime',
             'password' => 'hashed',
         ];
     }
